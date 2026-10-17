@@ -4,6 +4,26 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Environment and local secrets ###
+.env
+.env.*
+!.env.example
+!.env.example.*
+application-local.properties
+application-local.yml
+application-local.yaml
+.secrets/
+*.keystore
+*.jks
+*.p12
+*.key
+
+### Logs and OS files ###
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
 ### STS ###
 .apt_generated
 .classpath
@@ -31,5 +51,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-.env
