@@ -1,0 +1,15 @@
+services:
+  postgres:                      # a container named "postgres"
+    image: postgres:16           # which packaged software and version to run
+    container_name: shopwave-db  # a readable name for docker ps
+    environment:                 # settings passed into the container
+      POSTGRES_DB: shopwave      # creates this database on first start
+      POSTGRES_USER: shopwave    # creates this user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}   # reads the password from your environment variable
+    ports:
+      - "5433:5432"              # your machine's port 5433 -> container's port 5432
+    volumes:
+      - shopwave-data:/var/lib/postgresql/data   # stores data outside the container
+
+volumes:
+  shopwave-data:                 # declares that named storage
