@@ -1,11 +1,13 @@
-
 package com.shopwave.shopwave.security;
 
+import com.shopwave.shopwave.model.Users;
+import com.shopwave.shopwave.repository.UserRepository;
 import com.shopwave.shopwave.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,13 +18,11 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor   // generates the constructor for the two final fields below
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-
-    public JwtAuthenticationFilter(JwtService jwtService) {
-        this.jwtService = jwtService;
-    }
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -48,19 +48,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String username = jwtService.extractUsername(token);
 
             // Authenticate only if this request has not already been authenticated.
-            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (username != null
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // Create an authentication object for Spring Security.
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                List.of()
-                        );
+                // Load the user so the role (and enabled flag) come from the database.
+                Users user = userRepository.findByUserName(username).orElse(null);
 
-                // Store the authenticated identity for this request.
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                if (user != null && user.isEnabled()) {
+                    // Spring's hasRole("ADMIN") looks for the authority "ROLE_ADMIN".
+                    List<SimpleGrantedAuthority> authorities =
+                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    user.getUserName(),
+                                    null,
+                                    authorities
+                            );
+
+                    // Store the authenticated identity for this request.
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+                // If the user is missing or disabled, we leave the request
+                // unauthenticated, so protected endpoints return 401.
             }
 
         } catch (io.jsonwebtoken.JwtException

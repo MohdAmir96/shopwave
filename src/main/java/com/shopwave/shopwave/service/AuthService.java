@@ -18,7 +18,7 @@ import com.shopwave.shopwave.repository.UserRepository;
 
 // Used to hash passwords securely
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 // Marks this class as a Spring service
@@ -26,8 +26,6 @@ import org.springframework.stereotype.Service;
 
 // Runs the method inside a database transaction
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor  // will create constructor
@@ -93,22 +91,17 @@ public class AuthService {
     @Transactional(readOnly = true)
     public Users login(LoginRequest request) {
 
-        // STEP 1: Find the user by username.
-        // If no user exists, stop and report an authentication failure.
         Users user = userRepository.findByUserName(request.userName())
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Invalid username or password"));
+                        new BadCredentialsException("Invalid username or password"));
 
-        // STEP 2: Compare the submitted password with the stored BCrypt hash.
-        // Never compare the raw password directly with the database hash.
-        if (!passwordEncoder.matches(
+        boolean passwordMatches = passwordEncoder.matches(
                 request.password(),
-                user.getPasswordHash())) {
-
-            throw new IllegalArgumentException("Invalid username or password");
+                user.getPasswordHash());
+        if (!passwordMatches || !user.isEnabled()) {
+            throw new BadCredentialsException("Invalid username or password");
         }
 
-        // STEP 3: Return the authenticated user's entity.
         return user;
     }
 

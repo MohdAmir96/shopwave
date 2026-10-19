@@ -55,7 +55,11 @@ public class AuthController {
         String token = jwtService.generateToken(user);
 
         // Return the token to the client.
-        LoginResponse response = new LoginResponse(token, "Bearer");
+        LoginResponse response = new LoginResponse(
+                token,
+                "Bearer",
+                user.getRole().name()
+        );
 
         return ResponseEntity.ok(response);
     }
